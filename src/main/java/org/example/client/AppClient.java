@@ -11,7 +11,6 @@ import java.util.concurrent.Future;
 public class AppClient {
     private static final Logger LOG = LoggerFactory.getLogger(AppClient.class);
     private static final int MAX_TESTS = 100;
-    private final ClientManager clientManager = new ClientManager();
 
     public static void main(String[] args) {
         new AppClient().doTests();
@@ -21,10 +20,11 @@ public class AppClient {
         int successful = 0;
         int failures = 0;
         for (int n = 0; n < MAX_TESTS && failures == 0; n++) {
-            clientManager.init();
+            final ClientManager clientManager = new ClientManager();
+            clientManager.init(true);
             try {
                 LOG.info("Make request #{}", n);
-                makePostRequestAsync("http://localhost:7478/api/compute");
+                makePostRequestAsync(clientManager, "http://localhost:7478/api/compute");
                 successful++;
             } catch (Exception e) {
                 LOG.error("Caught exception", e);
@@ -40,7 +40,7 @@ public class AppClient {
         }
     }
 
-    private void makePostRequestAsync(String url) throws Exception {
+    private void makePostRequestAsync(ClientManager clientManager, String url) throws Exception {
         LOG.info("Make request ASYNC");
         try {
             final Future<Response> responseFuture = clientManager
@@ -57,7 +57,7 @@ public class AppClient {
         }
     }
 
-    private void makePostRequestSync(String url) {
+    private void makePostRequestSync(ClientManager clientManager, String url) {
         LOG.info("Make request SYNC");
         try {
             final Response response = clientManager
