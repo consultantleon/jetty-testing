@@ -18,6 +18,8 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+
 public class TestServer {
     private static final Logger LOG = LoggerFactory.getLogger(TestServer.class);
 
@@ -48,7 +50,7 @@ public class TestServer {
         servletContextHandler.setAllowNullPathInfo(true);
         handlers.addHandler(servletContextHandler);
 
-        final SecurityHandler authHandler = createBasicAuthenticationHandler("user", "pass");
+        final SecurityHandler authHandler = createSecurityHandler();
         authHandler.setHandler(handlers);
 
         //sets server for all handlers in the chain
@@ -97,5 +99,49 @@ public class TestServer {
         constraintSecurityHandler.setLoginService(loginService);
 
         return constraintSecurityHandler;
+    }
+
+    private ConstraintSecurityHandler constructSecurityHandler() {
+        final HttpSecurityHandler httpSecurityHandler = new CustomAuthResource();
+        return HttpSecurityHandlerBasedSecurityHandler.create("custom-auth-security-handler",
+                httpSecurityHandler, true);
+    }
+
+
+    public SecurityHandler createSecurityHandler() {
+        // A security handler is a jetty handler that secures content behind a
+        // particular portion of a url space. The ConstraintSecurityHandler is a
+        // more specialized handler that allows matching of urls to different
+        // constraints. The server sets this as the first handler in the chain,
+        // effectively applying these constraints to all subsequent handlers in
+        // the chain.
+        ConstraintSecurityHandler security =
+                HttpSecurityHandlerBasedSecurityHandler.create("auth", new CustomAuthResource(),
+                        true);
+        server.setHandler(security);
+
+        // This constraint requires authentication and in addition that an
+        // authenticated user be a member of a given set of roles for
+        // authorization purposes.
+        Constraint constraint = new Constraint();
+        constraint.setName("auth");
+        constraint.setAuthenticate(true);
+        constraint.setRoles(new String[]{"compute"});
+
+        // Binds a url pattern with the previously created constraint. The roles
+        // for this constraint mapping are mined from the Constraint itself
+        // although methods exist to declare and bind roles separately as well.
+        ConstraintMapping mapping = new ConstraintMapping();
+        mapping.setPathSpec("/*");
+        mapping.setConstraint(constraint);
+
+        // First you see the constraint mapping being applied to the handler as
+        // a singleton list, however you can passing in as many security
+        // constraint mappings as you like so long as they follow the mapping
+        // requirements of the servlet api. Next we set a BasicAuthenticator
+        // instance which is the object that actually checks the credentials
+        // followed by the LoginService which is the store of known users, etc.
+        security.setConstraintMappings(Collections.singletonList(mapping));
+        return security;
     }
 }
