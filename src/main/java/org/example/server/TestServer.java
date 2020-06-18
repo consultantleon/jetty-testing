@@ -6,9 +6,12 @@ import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.security.UserStore;
 import org.eclipse.jetty.security.authentication.BasicAuthenticator;
+import org.eclipse.jetty.server.CustomRequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.Slf4jRequestLogWriter;
 import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.security.Constraint;
@@ -32,6 +35,8 @@ public class TestServer {
 
     private final HandlerCollection handlers = new HandlerCollection(true);
 
+    private final RequestLogHandler requestLogHandler = new RequestLogHandler();
+
     public void startServer() {
         server = new Server(PORT);
         try (final ServerConnector httpServerConnector = new ServerConnector(server)) {
@@ -40,6 +45,7 @@ public class TestServer {
 
         final ResourceConfig resourceConfig = new ResourceConfig();
         resourceConfig.register(ServerApi.class);
+        resourceConfig.register(new RestLoggingFilter(getClass().getCanonicalName(), true));
         final ServletContainer servletContainer = new ServletContainer(resourceConfig);
         final ServletHolder servletHolder = new ServletHolder();
         servletHolder.setServlet(servletContainer);
@@ -48,14 +54,18 @@ public class TestServer {
         servletContextHandler.setContextPath(ENDPOINT);
         servletContextHandler.addServlet(servletHolder, "/*");
         servletContextHandler.setAllowNullPathInfo(true);
+
+        requestLogHandler.setRequestLog(
+                new CustomRequestLog(new Slf4jRequestLogWriter(), CustomRequestLog.NCSA_FORMAT));
+
         handlers.addHandler(servletContextHandler);
 
         final SecurityHandler authHandler = createSecurityHandler();
         authHandler.setHandler(handlers);
-
+        requestLogHandler.setHandler(authHandler);
         //sets server for all handlers in the chain
-        authHandler.setServer(server);
-        server.setHandler(authHandler);
+        requestLogHandler.setServer(server);
+        server.setHandler(requestLogHandler);
         try {
             handlers.start();
             server.start();

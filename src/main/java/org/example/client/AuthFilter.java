@@ -23,12 +23,10 @@ import java.io.InputStream;
 public class AuthFilter implements ClientRequestFilter, ClientResponseFilter {
     private static final Logger LOG = LoggerFactory.getLogger(AuthFilter.class);
 
-    private static final String TOKEN_URL =
-            "http://localhost:8080/auth/realms/myclient/protocol/openid-connect/token";
+    private static final String TOKEN_URL_TEMPLATE =
+            "http://localhost:8080/auth/realms/%s/protocol/openid-connect/token";
     private static final String IS_REPEAT_REQUEST = "repeat.request";
     private static final String SCOPE = "compute";
-    private static final String CLIENT_ID = "myclient";
-    private static final String CLIENT_SECRET = "512d71d4-d36b-4a6b-880e-82a008125972";
     private static final String REQUEST_FORM_FIELD_GRANT_TYPE = "grant_type";
     private static final String REQUEST_FORM_FIELD_SCOPE = "scope";
     private static final String REQUEST_FORM_FIELD_CLIENT_ID = "client_id";
@@ -86,12 +84,14 @@ public class AuthFilter implements ClientRequestFilter, ClientResponseFilter {
     private Response doLoginRequest() {
         LOG.info("doLoginRequest");
 
-        final WebTarget target = clientManager.getClient().target(TOKEN_URL);
+        final WebTarget target = clientManager
+                .getClient()
+                .target(String.format(TOKEN_URL_TEMPLATE, clientManager.getRealm()));
         final Form formData = new Form();
         formData.param(REQUEST_FORM_FIELD_GRANT_TYPE, "client_credentials");
         formData.param(REQUEST_FORM_FIELD_SCOPE, SCOPE);
-        formData.param(REQUEST_FORM_FIELD_CLIENT_ID, CLIENT_ID);
-        formData.param(REQUEST_FORM_FIELD_CLIENT_SECRET, CLIENT_SECRET);
+        formData.param(REQUEST_FORM_FIELD_CLIENT_ID, clientManager.getClientId());
+        formData.param(REQUEST_FORM_FIELD_CLIENT_SECRET, clientManager.getClientSecret());
         return target
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .property(ClientProperties.FOLLOW_REDIRECTS, Boolean.FALSE)

@@ -9,28 +9,46 @@ import javax.ws.rs.core.Response;
 
 public class AppClient {
     private static final Logger LOG = LoggerFactory.getLogger(AppClient.class);
-    private static final int MAX_TESTS = 100;
+    private static final int MAX_TESTS = 1000;
+    private static final int INTERVAL = 30000;
+    private final String realm;
+    private final String clientId;
+    private final String clientSecret;
+
+    public AppClient(String realm, String clientId, String clientSecret) {
+        this.realm = realm;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+    }
 
     public static void main(String[] args) {
-        new AppClient().doTests();
+        final String realm = args[0];
+        final String clientId = args[1];
+        final String clientSecret = args[2];
+
+        new AppClient(realm, clientId, clientSecret).doTests();
     }
 
     private void doTests() {
         int successful = 0;
         int failures = 0;
-        for (int n = 0; n < MAX_TESTS && failures == 0; n++) {
-            final ClientManager clientManager = new ClientManager();
+        for (int n = 0; n < MAX_TESTS; n++) {
+            if (n > 0) {
+                delay();
+            }
+            final ClientManager clientManager = new ClientManager(realm, clientId, clientSecret);
             clientManager.init(true);
             try {
                 LOG.info("Make request #{}", n);
                 makePostRequest(clientManager, "http://localhost:7478/api/compute");
                 successful++;
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 LOG.error("Caught exception", e);
                 failures++;
             } finally {
                 clientManager.close();
             }
+
         }
         if (failures > 0) {
             LOG.warn("Test #{} failed", successful + 1);
@@ -39,8 +57,16 @@ public class AppClient {
         }
     }
 
-    private void makePostRequest(ClientManager clientManager, String url) throws Exception {
-        LOG.info("Make request ASYNC");
+    private void delay() {
+        try {
+            Thread.sleep(INTERVAL);
+        } catch (InterruptedException e) {
+            LOG.warn("interrupted", e);
+        }
+    }
+
+    private void makePostRequest(ClientManager clientManager, String url) {
+        LOG.info("Make request");
         final Response response = clientManager
                 .getClient()
                 .target(url)

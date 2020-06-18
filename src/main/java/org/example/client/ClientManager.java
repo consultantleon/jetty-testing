@@ -5,7 +5,7 @@ import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.example.jetty.JettyConnectorProviderCustom;
+import org.example.jetty.JettyConnectorProviderStreaming;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jetty.connector.JettyHttpClientSupplier;
 
@@ -14,7 +14,28 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 
 public class ClientManager {
+    private final String realm;
+    private final String clientId;
+    private final String clientSecret;
     private Client client;
+
+    public ClientManager(String realm, String clientId, String clientSecret) {
+        this.realm = realm;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+    }
+
+    public String getRealm() {
+        return realm;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
 
     public Client getClient() {
         return client;
@@ -28,9 +49,9 @@ public class ClientManager {
         ClientBuilder clientBuilder = ClientBuilder.newBuilder();
         final ClientConfig clientConfig = new ClientConfig();
         if (enableAuthFature) {
-            clientConfig.register(AuthFeature.class);
+            clientConfig.register(new AuthFeature(realm, clientId, clientSecret));
         }
-        clientConfig.connectorProvider(new JettyConnectorProviderCustom());
+        clientConfig.connectorProvider(new JettyConnectorProviderStreaming());
         clientBuilder = clientBuilder.withConfig(clientConfig);
         client = clientBuilder.build();
         configureClient(client);
@@ -45,7 +66,7 @@ public class ClientManager {
         // provide our own HttpClient so we get full control over its configuration,
         // (JettyClientProperties does not allow much control!)
         final SSLContext sslContext = client.getSslContext();
-                final SslContextFactory sslContextFactory = new SslContextFactory.Client();
+        final SslContextFactory sslContextFactory = new SslContextFactory.Client();
         sslContextFactory.setSslContext(sslContext);
         final HttpClient httpClient = new HttpClient(sslContextFactory);
         client.register(new JettyHttpClientSupplier(httpClient));

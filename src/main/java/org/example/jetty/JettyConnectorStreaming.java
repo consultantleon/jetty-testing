@@ -70,7 +70,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 /**
  * Modified version of jersey-jetty-connector 2.30.1 JettyConnector - fixing a small race condition
@@ -124,7 +123,7 @@ import java.util.logging.Logger;
  */
 @SuppressWarnings({"squid:S1699", "squid:S1200", "squid:S1141", "squid:S2221", "squid:S1188",
                           "squid:S1066", "squid:S1181", "squid:S2095"})
-class JettyConnectorCustom implements Connector {
+class JettyConnectorStreaming implements Connector {
     private final HttpClient client;
     private final CookieStore cookieStore;
     private final Configuration configuration;
@@ -135,7 +134,7 @@ class JettyConnectorCustom implements Connector {
      * @param jaxrsClient JAX-RS client instance, for which the connector is created.
      * @param config client configuration.
      */
-    JettyConnectorCustom(final Client jaxrsClient, final Configuration config) {
+    JettyConnectorStreaming(final Client jaxrsClient, final Configuration config) {
         this.configuration = config;
         HttpClient httpClient = null;
         if (config.isRegistered(JettyHttpClientSupplier.class)) {
@@ -253,7 +252,7 @@ class JettyConnectorCustom implements Connector {
             final Response jettyResponse = listener.get(5, TimeUnit.SECONDS);
 
             HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                    JettyConnectorCustom.class.getName(), jerseyRequest.getConfiguration());
+                    JettyConnectorStreaming.class.getName(), jerseyRequest.getConfiguration());
 
             final ClientResponse jerseyResponse = translateResponse(jerseyRequest,jettyResponse,listener.getInputStream());
 
@@ -381,7 +380,7 @@ class JettyConnectorCustom implements Connector {
                 @Override
                 public void onHeaders(final Response jettyResponse) {
                     HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                            JettyConnectorCustom.class.getName(), jerseyRequest.getConfiguration());
+                            JettyConnectorStreaming.class.getName(), jerseyRequest.getConfiguration());
 
                     if (responseFuture.isDone()) {
                         if (!callbackInvoked.compareAndSet(false, true)) {

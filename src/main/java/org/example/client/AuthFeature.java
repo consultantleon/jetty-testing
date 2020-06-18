@@ -10,10 +10,20 @@ import javax.ws.rs.core.FeatureContext;
 public class AuthFeature implements Feature {
     private static final Logger LOG = LoggerFactory.getLogger(AuthFeature.class);
 
+    private final String realm;
+    private final String clientId;
+    private final String clientSecret;
+
+    public AuthFeature(String realm, String clientId, String clientSecret) {
+        this.realm = realm;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+    }
+
     @Override
     public boolean configure(FeatureContext context) {
         LOG.info("Configure auth feature");
-        final ClientManager clientManager = new ClientManager();
+        final ClientManager clientManager = new ClientManager(realm, clientId, clientSecret);
         try {
             clientManager.init();
         } catch (Exception e) {

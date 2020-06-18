@@ -81,11 +81,11 @@ import javax.ws.rs.core.Configuration;
  * @author Marek Potociar
  * @since 2.5
  */
-public class JettyConnectorProviderCustom implements ConnectorProvider {
+public class JettyConnectorProviderStreaming implements ConnectorProvider {
 
     @Override
     public Connector getConnector(Client client, Configuration runtimeConfig) {
-        return new JettyConnectorCustom(client, runtimeConfig);
+        return new JettyConnectorStreaming(client, runtimeConfig);
     }
 
     /**
@@ -115,8 +115,8 @@ public class JettyConnectorProviderCustom implements ConnectorProvider {
             connector = initializable.getConfiguration().getConnector();
         }
 
-        if (connector instanceof JettyConnectorCustom) {
-            return ((JettyConnectorCustom) connector).getHttpClient();
+        if (connector instanceof JettyConnectorStreaming) {
+            return ((JettyConnectorStreaming) connector).getHttpClient();
         }
 
         throw new IllegalArgumentException(LocalizationMessages.EXPECTED_CONNECTOR_PROVIDER_NOT_USED());
